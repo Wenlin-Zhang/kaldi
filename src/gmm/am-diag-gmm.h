@@ -34,6 +34,9 @@ namespace kaldi {
 /// kaldi Diagonal Gaussian Mixture Models
 
 class AmDiagGmm {
+
+ friend class AmMfa;
+
  public:
   AmDiagGmm() {}
   ~AmDiagGmm();

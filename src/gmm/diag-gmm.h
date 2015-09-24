@@ -43,6 +43,7 @@ class DiagGmmNormal;
 class DiagGmm {
   /// this makes it a little easier to modify the internals
   friend class DiagGmmNormal;
+  friend class AmMfa;
 
  public:
   /// Empty constructor.
