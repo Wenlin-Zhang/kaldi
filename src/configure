@@ -868,8 +868,11 @@ if [ "`uname`" == "Linux" ]; then
       OPENFSTLDFLAGS="-Wl,-rpath=${FSTROOT}/lib"
       fst_type='so'
   fi
+  echo "Check $FSTROOT/lib/libfst.${fst_type}."
   if [ ! -f "$FSTROOT/lib/libfst.${fst_type}" ]; then
     failure "Static=[$static_fst] OpenFST library not found:  See ../tools/INSTALL"
+  else
+    echo "OPENFSTLIBS = $OPENFSTLIBS"
   fi
   echo OPENFSTLIBS = $OPENFSTLIBS >> kaldi.mk
   echo OPENFSTLDFLAGS = $OPENFSTLDFLAGS >> kaldi.mk
