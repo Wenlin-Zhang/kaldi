@@ -111,8 +111,8 @@ class MFA {
   friend class MleAmMfaUpdater;
   friend class EbwAmMfaUpdater;
   friend class AmMfa;
-  friend class MleAmMfaUpdater2;
-  friend class EbwAmMfaUpdater2;
+  friend class MleAmMfa2Updater;
+  friend class EbwAmMfa2Updater;
   friend class AmMfa2;
 
 public:
