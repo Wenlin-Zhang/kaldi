@@ -9,7 +9,7 @@ SUBDIRS = base matrix util feat tree thread gmm transform sgmm \
           fstext hmm lm decoder lat kws cudamatrix nnet \
           bin fstbin gmmbin fgmmbin sgmmbin featbin \
           nnetbin latbin sgmm2 sgmm2bin nnet2 nnet3 nnet3bin nnet2bin kwsbin \
-          ivector ivectorbin online2 online2bin lmbin mfa mfabin
+          ivector ivectorbin online2 online2bin lmbin mfa mfabin mfa2 mfa2bin
 
 MEMTESTDIRS = base matrix util feat tree thread gmm transform sgmm \
           fstext hmm lm decoder lat nnet \
@@ -180,3 +180,5 @@ online2: decoder gmm transform feat matrix util base lat hmm thread ivector cuda
 kws: base util hmm tree matrix lat
 kwsbin: fstext kws lat base util hmm tree matrix
 mfa: base util matrix gmm tree transform thread hmm
+mfa2: base util matrix gmm tree transform thread hmm mfa
+
