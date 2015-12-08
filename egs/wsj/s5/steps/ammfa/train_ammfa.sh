@@ -26,7 +26,7 @@ min_comp=10       # minimal mixture count per state
 max_comp=-1     # maximal mixture count per state
 weight_method=2   # shrink weight option (0-Direct|1-ShrinkHard|2-ShrinkAver|3-ShrinkSoft|4-Floor|5-Factor)
 weight_parm=0.1   # weight estimation parameters
-gselect_direct=0  # whether use direct gselect method
+gselect_direct=1  # whether use direct gselect method
 
 # Example options
 # --weight-method 2 --weight-parm 0.1  *****Shrink by 0.1/I
