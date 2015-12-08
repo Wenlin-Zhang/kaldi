@@ -84,7 +84,7 @@ if [ $stage -le -1 ]; then
 fi
 
 if [ $use_gselect -eq 1 ]; then
-  gselect_opt="--use-gselect --diag-gmm-nbest=$num_gselect"
+  gselect_opt="--use-gselect=$use_gselect --diag-gmm-nbest=$num_gselect"
 else
   gselect_opt=
 fi
@@ -100,7 +100,7 @@ while [ $x -lt $num_iters ]; do
     $cmd $dir/log/update.$x.log \
       mfa-est --verbose=2 $dir/$x.mfa "mfa-sum-accs - $dir/$x.*.acc |" $dir/$[$x+1].mfa || exit 1;
   fi
-  rm $dir/*.acc $dir/$x.mfa
+  rm -f $dir/*.acc $dir/$x.mfa
   x=$[$x+1]
 done
 
