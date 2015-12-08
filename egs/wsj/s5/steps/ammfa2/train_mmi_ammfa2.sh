@@ -12,6 +12,7 @@ cancel=true # if true, cancel num and den counts on each frame.
 acwt=0.1
 stage=0
 glasso_tau=2 # L1 weight for the graphica lasso method for the sparse inverse covariance matrix estimation
+lrate=0.5
 
 transform_dir=
 # End configuration section
@@ -92,6 +93,8 @@ if [ $stage -le -1 ]; then
   am-mfa-to-am-mfa2 $alidir/final.mdl $dir/0.mdl
 fi
 
+lrate_opt="--lrate-y=$lrate --lrate-Sigma=$lrate --lrate-w=$lrate"
+
 cur_mdl=$dir/0.mdl
 x=0
 while [ $x -lt $num_iters ]; do
@@ -118,7 +121,7 @@ while [ $x -lt $num_iters ]; do
     rm $dir/num_acc.$x.*.acc
     echo "$x Update ywS ..."
     $cmd $dir/log/update.$x.log \
-      am-mfa2-est-ebw --update-flags="ywS" $cur_mdl $dir/num_acc.$x.acc $dir/den_acc.$x.acc $dir/$[$x+1].mdl || exit 1;
+      am-mfa2-est-ebw --update-flags="ywS" $lrate_opt $cur_mdl $dir/num_acc.$x.acc $dir/den_acc.$x.acc $dir/$[$x+1].mdl || exit 1;
 
   fi
   cur_mdl=$dir/$[$x+1].mdl
