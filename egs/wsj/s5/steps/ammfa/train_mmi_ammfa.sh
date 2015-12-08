@@ -11,6 +11,7 @@ boost=0.0
 cancel=true # if true, cancel num and den counts on each frame.
 acwt=0.1
 stage=0
+lrate=0.5
 
 transform_dir=
 # End configuration section
@@ -93,6 +94,7 @@ if [[ "$boost" != "0.0" && "$boost" != 0 ]]; then
   lats="$lats lattice-boost-ali --b=$boost --silence-phones=$silphonelist $alidir/final.mdl ark:- 'ark,s,cs:gunzip -c $alidir/ali.JOB.gz|' ark:- |"
 fi
 
+lrate_opt="--lrate-y=$lrate --lrate-M=$lrate --lrate-N=$lrate --lrate-Sigma=$lrate --lrate-mu=$lrate --lrate-w=$lrate"
 
 cur_mdl=$alidir/final.mdl
 x=0
@@ -120,7 +122,7 @@ while [ $x -lt $num_iters ]; do
     rm $dir/num_acc.$x.*.y.acc
     echo "$x.1 Update y ..."
     $cmd $dir/log/update.$x.1.y.log \
-      am-mfa-est-ebw --update-flags="y" $cur_mdl $dir/num_acc.$x.y.acc $dir/den_acc.$x.y.acc $dir/$[$x+1].1.y.mdl || exit 1;
+      am-mfa-est-ebw --update-flags="y" $lrate_opt $cur_mdl $dir/num_acc.$x.y.acc $dir/den_acc.$x.y.acc $dir/$[$x+1].1.y.mdl || exit 1;
     #cur_mdl=$dir/$[$x+1].1.y.mdl
 
     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.M.log \
@@ -141,7 +143,7 @@ while [ $x -lt $num_iters ]; do
     rm $dir/num_acc.$x.*.M.acc
     echo "$x.2 Update M ..."
     $cmd $dir/log/update.$x.2.M.log \
-      am-mfa-est-ebw --update-flags="M" $dir/$[$x+1].1.y.mdl $dir/num_acc.$x.M.acc $dir/den_acc.$x.M.acc $dir/$[$x+1].2.M.mdl || exit 1;
+      am-mfa-est-ebw --update-flags="M" $lrate_opt $dir/$[$x+1].1.y.mdl $dir/num_acc.$x.M.acc $dir/den_acc.$x.M.acc $dir/$[$x+1].2.M.mdl || exit 1;
     #cur_mdl=$dir/$[$x+1].2.M.mdl
 
     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.Smlog \
@@ -162,7 +164,7 @@ while [ $x -lt $num_iters ]; do
     rm $dir/num_acc.$x.*.Sm.acc
     echo "$x.3 Update Sm ..."
     $cmd $dir/log/update.$x.3.Sm.log \
-      am-mfa-est-ebw --update-flags="Sm" $dir/$[$x+1].2.M.mdl $dir/num_acc.$x.Sm.acc $dir/den_acc.$x.Sm.acc $dir/$[$x+1].3.Sm.mdl || exit 1;
+      am-mfa-est-ebw --update-flags="Sm" $lrate_opt $dir/$[$x+1].2.M.mdl $dir/num_acc.$x.Sm.acc $dir/den_acc.$x.Sm.acc $dir/$[$x+1].3.Sm.mdl || exit 1;
     #cur_mdl=$dir/$[$x+1].3.Sm.mdl
     
     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.w.log \
@@ -183,7 +185,7 @@ while [ $x -lt $num_iters ]; do
     rm $dir/num_acc.$x.*.w.acc
     echo "$x.4 Update w ..."
     $cmd $dir/log/update.$x.4.w.log \
-      am-mfa-est-ebw --update-flags="w" $dir/$[$x+1].3.Sm.mdl $dir/num_acc.$x.w.acc $dir/den_acc.$x.w.acc $dir/$[$x+1].4.w.mdl || exit 1;
+      am-mfa-est-ebw --update-flags="w" $lrate_opt $dir/$[$x+1].3.Sm.mdl $dir/num_acc.$x.w.acc $dir/den_acc.$x.w.acc $dir/$[$x+1].4.w.mdl || exit 1;
     #cur_mdl=$dir/$[$x+1].4.w.mdl
 
     if [ -f $alidir/vecs.1 ]; then
@@ -205,7 +207,7 @@ while [ $x -lt $num_iters ]; do
       rm $dir/num_acc.$x.*.N.acc
       echo "$x.0 Update N ..."
       $cmd $dir/log/update.$x.5.N.log \
-        am-mfa-est-ebw --update-flags="N" $dir/$[$x+1].4.w.mdl $dir/num_acc.$x.N.acc $dir/den_acc.$x.N.acc $dir/$[$x+1].5.N.mdl || exit 1;
+        am-mfa-est-ebw --update-flags="N" $lrate_opt $dir/$[$x+1].4.w.mdl $dir/num_acc.$x.N.acc $dir/den_acc.$x.N.acc $dir/$[$x+1].5.N.mdl || exit 1;
       echo "$x. Copy final model ..."    
       cp $dir/$[$x+1].5.N.mdl $dir/$[$x+1].mdl
     else
