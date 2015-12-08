@@ -19,10 +19,10 @@ retry_beam=40
 cluster_thresh=-1  # for build-tree control final bottom-up clustering of leaves
 
 min_comp=10       # minimal mixture count per state
-max_comp=-1.0     # maximal mixture count per state
+max_comp=-1     # maximal mixture count per state
 weight_method=7   # shrink weight option (0-Direct|1-ShrinkHard|2-ShrinkAver|3-ShrinkSoft|4-Floor|5-Factor)
 weight_parm=1.0e-5   # weight estimation parameters
-gselect_direct=0  # whether use direct gselect method
+gselect_direct=1  # whether use direct gselect method
 
 glasso_tau=2   # L1 weight for the graphica lasso method for the sparse inverse covariance matrix estimation
 
