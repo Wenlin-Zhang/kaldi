@@ -128,6 +128,7 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
   Vector<Real> w12(dim - 1);
   Vector<Real> s12(dim - 1);
   SpMatrix<Real> W11(dim - 1);
+  SpMatrix<Real> InvW11(dim - 1);
   Matrix<Real> Beta(dim, dim - 1);
   Real l1_change = 0.0;
 
@@ -160,9 +161,13 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
 
         // get s12
         s12(j2) = S(i, j);
-        // get beta
-        beta(j2) = W(i, j);
+        // get w12
+        w12(j2) = W(i, j);
       }
+      // Init beta
+      InvW11 = W11;
+      InvW11.Inverse();
+      beta.AddSpVec(1.0, InvW11, w12, 0.0);
 
       // solve the l1 problem
       if (W11.IsPosDef() == false)
