@@ -24,7 +24,7 @@ weight_method=7   # shrink weight option (0-Direct|1-ShrinkHard|2-ShrinkAver|3-S
 weight_parm=1.0e-5   # weight estimation parameters
 gselect_direct=1  # whether use direct gselect method
 
-glasso_tau=2   # L1 weight for the graphica lasso method for the sparse inverse covariance matrix estimation
+glasso_tau=0.01   # L1 weight for the graphica lasso method for the sparse inverse covariance matrix estimation
 
 # Example options
 # --weight-method 2 --weight-parm 0.1  *****Shrink by 0.1/I
@@ -41,10 +41,10 @@ if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
 
-if [ $# != 6 ]; then
-  echo "Usage: steps/train_am_mfa2.sh <num-leaves> <data> <lang> <ali-dir> <mfa> <exp-dir>"
-  echo " e.g.: steps/train_am_mfa.sh 3500 32 data/train_si84 data/lang \\"
-  echo "                      exp/tri3b_ali_si84 exp/mfa4a/final.mfa exp/ammfa4a"
+if [ $# != 5 ]; then
+  echo "Usage: steps/train_am_mfa2.sh <num-leaves> <data> <lang> <ali-dir> <exp-dir>"
+  echo " e.g.: steps/train_am_mfa2.sh 3500 data/train_si84 data/lang \\"
+  echo "                      exp/ammfa_ali exp/ammfa2"
   echo "main options (for others, see top of script file)"
   echo "  --config <config-file>                           # config containing options"
   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
@@ -64,8 +64,7 @@ num_leaves=$1
 data=$2
 lang=$3
 alidir=$4
-mfa=$5
-dir=$6
+dir=$5
 
 # Check some files.
 for f in $data/feats.scp $lang/L.fst $alidir/ali.1.gz $alidir/final.mdl; do
@@ -103,30 +102,13 @@ if [ -f $alidir/trans.1 ]; then
   cp $alidir/trans.* $dir
   echo "$0: use transforms from $dir"
   feats="$feats transform-feats --utt2spk=ark:$sdata/JOB/utt2spk ark,s,cs:$dir/trans.JOB ark:- ark:- |"
-fi
-
-if [ $stage -le -5 ]; then
-  echo "$0: accumulating tree stats"
-  $cmd JOB=1:$nj $dir/log/acc_tree.JOB.log \
-    acc-tree-stats  --ci-phones=$ciphonelist $alidir/final.mdl "$feats" \
-    "ark:gunzip -c $alidir/ali.JOB.gz|" $dir/JOB.treeacc || exit 1;
-  [ "`ls $dir/*.treeacc | wc -w`" -ne "$nj" ] && echo "$0: Wrong #tree-stats" && exit 1;
-  sum-tree-stats $dir/treeacc $dir/*.treeacc 2>$dir/log/sum_tree_acc.log || exit 1;
-  rm $dir/*.treeacc
+else
+  echo "No CMLLR transform found!"
 fi
 
 if [ $stage -le -4 ]; then
-  echo "$0: Getting questions for tree clustering."
-  # preparing questions, roots file...
-  cluster-phones $dir/treeacc $lang/phones/sets.int $dir/questions.int 2> $dir/log/questions.log || exit 1;
-  cat $lang/phones/extra_questions.int >> $dir/questions.int
-  compile-questions $lang/topo $dir/questions.int $dir/questions.qst 2>$dir/log/compile_questions.log || exit 1;
-
-  echo "$0: Building the tree"
-  $cmd $dir/log/build_tree.log \
-    build-tree --verbose=1 --max-leaves=$num_leaves \
-    --cluster-thresh=$cluster_thresh $dir/treeacc $lang/phones/roots.int \
-    $dir/questions.qst $lang/topo $dir/tree || exit 1;
+  echo "$0: Copy tree ..."
+  cp $alidir/tree $dir/tree
 fi
 
 if [ $stage -le -3 ]; then
@@ -144,10 +126,8 @@ if [ $stage -le -2 ]; then
 fi
 
 if [ $stage -le -1 ]; then
-  echo "$0: Converting alignments" 
-  $cmd JOB=1:$nj $dir/log/convert_ali.JOB.log \
-    convert-ali $alidir/final.mdl $dir/0.mdl $dir/tree "ark:gunzip -c $alidir/ali.JOB.gz|" \
-    "ark:|gzip -c >$dir/ali.JOB.gz" || exit 1;
+  echo "$0: Ciot alignments" 
+  cp $alidir/ali.*.gz $dir
 fi
 
 # set up weight estimation option
@@ -163,7 +143,7 @@ while [ $x -lt $num_iters ]; do
      if echo $realign_iters | grep -w $x >/dev/null && [ $stage -le $x ]; then
        echo "$0: re-aligning data"
        $cmd JOB=1:$nj $dir/log/align.$x.JOB.log  \
-         am-mfa2-align-compiled $spkvecs_opt --utt2spk=ark:$sdata/JOB/utt2spk $scale_opts --beam=$beam --retry-beam=$retry_beam \
+         am-mfa2-align-compiled $scale_opts --beam=$beam --retry-beam=$retry_beam \
          $dir/$x.mdl "ark:gunzip -c $dir/fsts.JOB.gz|" "$feats" \
          "ark:|gzip -c >$dir/ali.JOB.gz" || exit 1;
      fi
@@ -175,7 +155,7 @@ while [ $x -lt $num_iters ]; do
        while [ $inner_cnt -lt $inner_iters ]; do
          echo "$0: stage $x.1.$inner_cnt.1 accumulate statistics for update tw"
          $cmd JOB=1:$nj $dir/log/acc.$x.JOB.tw.$inner_cnt.log \
-           am-mfa2-acc-stats --ammfa-gselect-direct=$gselect_direct --utt2spk=ark:$sdata/JOB/utt2spk $spkvecs_opt \
+           am-mfa2-acc-stats --ammfa2-gselect-direct=$gselect_direct \
               --update-flags="tw" $dir/$[$x+1].tw.$inner_cnt.mdl "$feats" \
               "ark,s,cs:gunzip -c $dir/ali.JOB.gz | ali-to-post ark:- ark:-|" \
               $dir/$x.JOB.tw.$inner_cnt.acc || exit 1;
@@ -183,7 +163,7 @@ while [ $x -lt $num_iters ]; do
          rm $dir/$x.*.tw.$inner_cnt.acc 2>/dev/null
          echo "$0: stage $x.1.$inner_cnt.2 update tw"
          $cmd $dir/log/update.$x.tw.$inner_cnt.log \
-           am-mfa2-est --update-flags="tw" --use-l1=$use_l1 $weight_opt  $dir/$[$x+1].tw.$inner_cnt.mdl $dir/$x.tw.$inner_cnt.acc \
+           am-mfa2-est --update-flags="tw" $weight_opt  $dir/$[$x+1].tw.$inner_cnt.mdl $dir/$x.tw.$inner_cnt.acc \
            $dir/$[$x+1].tw.$[$inner_cnt+1].mdl || exit 1;
          inner_cnt=$[$inner_cnt+1];
        done
@@ -191,49 +171,33 @@ while [ $x -lt $num_iters ]; do
        rm $dir/$[$x+1].tw.*.mdl
        comp_count=`am-mfa2-info $dir/$[$x+1].0.mdl 2>/dev/null | awk '/Average # of components per state/{print $NF}'` || exit 1;
        echo "Average # of components per state : $comp_count (previous=$previous_comp_count)"
-       #if [ $(echo "$previous_comp_count > 0" | bc) -eq 1 ]; then
-       #   if [ $(echo "$previous_comp_count-$comp_count < $min_comp_change" | bc) -eq 1 ]; then
-       #      no_comp_changes=$[$no_comp_changes+1]
-       #      echo "Detect $no_comp_changes times that the component change is less than $min_comp_change."
-       #   else
-       #      echo "The component change is larger than $min_comp_change, reset the component change counter to 0."
-       #      no_comp_changes=0
-       #   fi
-       #   if [ $(echo "$no_comp_changes >= 3" | bc) -eq 1 ]; then
-       #      echo "Detect 3 times that the component change is less than $min_comp_change, no weight shrinkage from now on."
-       #      weight_opt="--min-comp=$min_comp --max-comp=$max_comp --weight_method=0"
-       #      if [ $(echo "$num_iters > $[$x+3]" | bc) -eq 1 ]; then
-       #        num_iters=$[$x+3];
-       #        echo "Set the total iteration number to $num_iters";
-       #      fi
-       #   fi
-       #fi
        previous_comp_count=$comp_count
+
+       echo "$0: stage $x.2 accumulate statistics for update y"
+       $cmd JOB=1:$nj $dir/log/acc.$x.JOB.y.log \
+         am-mfa2-acc-stats --ammfa2-gselect-direct=$gselect_direct --update-flags="y" $dir/$[$x+1].0.mdl "$feats" \
+           "ark,s,cs:gunzip -c $dir/ali.JOB.gz | ali-to-post ark:- ark:-|" \
+           $dir/$x.JOB.y.acc || exit 1;
+       am-mfa2-sum-accs $dir/$x.y.acc $dir/$x.*.y.acc
+       rm $dir/$x.*.y.acc 2>/dev/null
+       echo "$0: stage $x.3 update y"
+       $cmd $dir/log/update.$x.y.log \
+         am-mfa2-est --update-flags="y" $weight_opt  $dir/$[$x+1].0.mdl $dir/$x.y.acc \
+         $dir/$[$x+1].y.mdl || exit 1;
+
      else
-       echo "$0: stage $x.1 skip update tw"
-       cp $dir/$x.mdl $dir/$[$x+1].0.mdl
+       echo "$0: stage $x.1-3 skip update tw and y"
+       cp $dir/$x.mdl $dir/$[$x+1].y.mdl
      fi
      
-     echo "$0: stage $x.2 accumulate statistics for update y"
-     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.y.log \
-       am-mfa2-acc-stats --ammfa-gselect-direct=$gselect_direct --utt2spk=ark:$sdata/JOB/utt2spk $spkvecs_opt --update-flags="y" $dir/$[$x+1].0.mdl "$feats" \
-         "ark,s,cs:gunzip -c $dir/ali.JOB.gz | ali-to-post ark:- ark:-|" \
-         $dir/$x.JOB.y.acc || exit 1;
-     am-mfa2-sum-accs $dir/$x.y.acc $dir/$x.*.y.acc
-     rm $dir/$x.*.y.acc 2>/dev/null
-     echo "$0: stage $x.3 update y"
-     $cmd $dir/log/update.$x.y.log \
-       am-mfa2-est --update-flags="y" --use-l1=$use_l1 $weight_opt  $dir/$[$x+1].0.mdl $dir/$x.y.acc \
-       $dir/$[$x+1].y.mdl || exit 1;
-
-     echo "$0: stage $x.6 accumulate statistics for update S"
-     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.mS.log \
-       am-mfa2-acc-stats --ammfa-gselect-direct=$gselect_direct --utt2spk=ark:$sdata/JOB/utt2spk $spkvecs_opt --update-flags="S" $dir/$[$x+1].y.mdl "$feats" \
+     echo "$0: stage $x.4 accumulate statistics for update S"
+     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.S.log \
+       am-mfa2-acc-stats --ammfa2-gselect-direct=$gselect_direct --update-flags="S" $dir/$[$x+1].y.mdl "$feats" \
          "ark,s,cs:gunzip -c $dir/ali.JOB.gz | ali-to-post ark:- ark:-|" \
          $dir/$x.JOB.S.acc || exit 1;
      am-mfa2-sum-accs $dir/$x.S.acc $dir/$x.*.S.acc
      rm $dir/$x.*.S.acc 2>/dev/null
-     echo "$0: stage $x.7 update S"
+     echo "$0: stage $x.5 update S"
      $cmd $dir/log/update.$x.S.log \
        am-mfa2-est --update-flags="S" --glasso-tau=$glasso_tau $dir/$[$x+1].y.mdl $dir/$x.S.acc \
        $dir/$[$x+1].S.mdl || exit 1;

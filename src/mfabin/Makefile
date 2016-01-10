@@ -10,7 +10,7 @@ BINFILES = mfa-init mfa-acc-stats mfa-est mfa-sum-accs mfa-info \
            am-mfa-acc-stats2 am-mfa-est-ebw am-mfa-rescore-lattice \
            am-mfa-est-spkvecs am-mfa-est-spkvecs-gpost am-mfa-post-to-gpost \
            am-mfa-info am-mfa-acc-stats-gpost am-mfa-init-spk-proj am-mfa-shrink \
-           am-mfa-gselect am-mfa-post-to-mfa-post-sum am-mfa-shrink-by-mfa-post-sum
+           am-mfa-gselect am-mfa-post-to-mfa-post-sum am-mfa-shrink-by-mfa-post-sum am-mfa-view
 
 
 OBJFILES =

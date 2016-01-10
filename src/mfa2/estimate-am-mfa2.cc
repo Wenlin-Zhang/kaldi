@@ -235,7 +235,7 @@ BaseFloat MleAmMfa2Accs::AccumulateFromPosteriors(const AmMfa2 &model,
       s1_[state_index].AddVecVec(1.0, posteriors, data);
   }
 
-  // second order statistics is needed for Sigamma
+  // second order statistics is needed for Sigma
 	if (flags & kAmMfaCovarianceMatrix) {
 		const std::vector<int32>& faIndex = model.sFaIndex_[state_index];
 		Vector<BaseFloat> data2;
@@ -561,7 +561,7 @@ double SolveWeightsShrinkThreshold(Vector<BaseFloat>* pWeights, int32 min_comp, 
     pWeights->Scale(1.0 / wSum);
 
     KALDI_LOG << "Prune weight components from " << pWeights->Dim()
-              << " to " << reserved_dim << " for one state "
+              << " to " << reserved_dim << "  for one state "
               << "(prune " << prune_cnt << "components).";
   }
 
@@ -764,12 +764,18 @@ double MleAmMfa2Updater::UpdateCovarianceMatrix(const MleAmMfa2Accs &accs,
 	opt.graphlasso_tau = update_options_.glasso_tau_;
 	for (int i = 0; i < model->NumStates(); ++i) {
 		for (int j = 0; j < model->NumComps(i); ++j) {
-			if (accs.s0_[i](j) < update_options_.s0_thresh_) {
-				KALDI_LOG<< "The " << i << "th factor model (Sigma) is not updated due to small occupation.";
+			if (accs.s0_[i](j) < update_options_.min_cov_ratio_ * model->FeatureDim()) {
+				KALDI_LOG<< "The " << i << "th state's " << j << "th component's covariance matrix is not updated due to small occupation.";
 				continue;
 			}
 			SpMatrix<BaseFloat> origSigma = accs.s2_[i][j];
 			origSigma.Scale(1.0 / accs.s0_[i](j));
+			 if (origSigma.IsPosDef() == false)
+			 {
+			        KALDI_WARN << "origSigma is not positive definite!" << "occ = " << accs.s0_[i](j);
+			        KALDI_LOG<< "The " << i << "th state's " << j << "th component's covariance matrix is not updated due to small occupation.";
+			        continue;
+			 }
 			GraphicalLasso(origSigma, &Sigma, &(model->sFaInvSigma_[i][j]), opt);
 		}
 	}

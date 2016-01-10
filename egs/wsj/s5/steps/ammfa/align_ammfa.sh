@@ -69,11 +69,13 @@ case $feat_type in
   *) echo "Invalid feature type $feat_type" && exit 1;
 esac
 if [ ! -z "$transform_dir" ]; then
-  echo "$0: using transforms from $transform_dir"
+  echo "$0: copy transforms from $transform_dir"
   [ ! -f $transform_dir/trans.1 ] && echo "$0: no such file $transform_dir/trans.1" && exit 1;
   [ "$nj" -ne "`cat $transform_dir/num_jobs`" ] \
     && echo "$0: #jobs mismatch with transform-dir." && exit 1;
-  feats="$feats transform-feats --utt2spk=ark:$sdata/JOB/utt2spk ark,s,cs:$transform_dir/trans.JOB ark:- ark:- |"
+  cp $transform_dir/trans.* $dir
+  echo "$0: use transforms from $dir"
+  feats="$feats transform-feats --utt2spk=ark:$sdata/JOB/utt2spk ark,s,cs:$dir/trans.JOB ark:- ark:- |"
 elif grep 'transform-feats --utt2spk' $srcdir/log/acc.0.1.log 2>/dev/null; then
   echo "$0: **WARNING**: you seem to be using an AM-MFA system trained with transforms,"
   echo "  but you are not providing the --transform-dir option during alignment."

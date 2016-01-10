@@ -39,7 +39,7 @@ struct GraphicLassoConfig {
   GraphicLassoConfig() {
     max_iters = 100;
     graphlasso_tau = 10;
-    stop_tol = 1.0e-5;
+    stop_tol = 1.0e-6;
   }
 
   void Register(ParseOptions *po)
@@ -129,14 +129,15 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
   Vector<Real> s12(dim - 1);
   SpMatrix<Real> W11(dim - 1);
   Matrix<Real> Beta(dim, dim - 1);
-  Real l1_change = 0.0;
+//  Real l1_change = 0.0;
 
   SpMatrix<Real> W_old = W;
   int32 iter = 0;
+  Real obj_old = GraphicalLassoObj(W_old, S, (Real)opt.graphlasso_tau);
+  Real obj = 0.0, obj_change = -1.0;
+
   while(bContinue)
   {
-    l1_change = 0.0;
-
     // for each row
     for(int32 i = 0; i < dim; ++ i)
     {
@@ -185,25 +186,52 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
       }
     }
 
-    ++ iter;
+		++iter;
 
-    // Check L1 change
-    l1_change = Diff_L1(W, W_old);
-    if (l1_change < opt.stop_tol)
-    {
-      KALDI_VLOG(1) << "L1 change (" << l1_change << ") bellow the predefined threshold ("
-          << opt.stop_tol << "), stop iteration (iter = " << iter << ").";
-      bContinue = false;
-    }
-    else
-    {
-      // check iteration number
-      if (opt.max_iters > 0 && iter > opt.max_iters)
-      {
-        KALDI_VLOG(1) << "Maximum iteration number (" << opt.max_iters << ") reached, stop iteration.";
-        break;
-      }
-      W_old.CopyFromSp(W);
+		obj = GraphicalLassoObj(W, S, (Real) opt.graphlasso_tau);
+		if (obj > obj_old)
+		{
+			KALDI_WARN<< "obj_old = " << obj_old << ", obj = " << obj << ", obj > obj_old. Stop iteration. \n";
+			break;
+		}
+		obj_change = fabs((obj_old - obj) / obj_old);
+		KALDI_LOG<< "obj_old  = " << obj_old << ", obj  = " << obj << ", relative obj_change = "<< obj_change << "\n";
+		if (obj_change < opt.stop_tol) {
+			KALDI_VLOG(1) << "obj_change (" << obj_change
+					<< ") bellow the predefined threshold (" << opt.stop_tol
+					<< "), stop iteration (iter = " << iter << ").";
+			bContinue = false;
+		} else {
+			// check iteration number
+			if (opt.max_iters > 0 && iter > opt.max_iters) {
+				KALDI_VLOG(1) << "Maximum iteration number (" << opt.max_iters
+						<< ") reached, stop iteration.";
+				break;
+			}
+			obj_old = obj;
+			W_old.CopyFromSp(W);
+
+//    // Check L1 change
+//    l1_change = Diff_L1(W, W_old);
+//    KALDI_LOG << "W_old = " <<  W_old << "\n";
+//    KALDI_LOG << "W = " <<  W << "\n";
+//    KALDI_LOG << "W_old 2 norm = " << W_old.FrobeniusNorm() << ", l1_change = " << l1_change << ", l1/2norm = "<< l1_change / W_old.FrobeniusNorm() <<  "\n";
+//    if (l1_change / W.FrobeniusNorm() < opt.stop_tol)
+//    {
+//      KALDI_VLOG(1) << "L1 change (" << l1_change << ") bellow the predefined threshold ("
+//          << opt.stop_tol << "), stop iteration (iter = " << iter << ").";
+//      bContinue = false;
+//    }
+//    else
+//    {
+//      // check iteration number
+//      if (opt.max_iters > 0 && iter > opt.max_iters)
+//      {
+//        KALDI_VLOG(1) << "Maximum iteration number (" << opt.max_iters << ") reached, stop iteration.";
+//        break;
+//      }
+//
+//      W_old.CopyFromSp(W);
     }
 
   }
@@ -212,32 +240,34 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
   if (pInvW != NULL)
   {
      SpMatrix<Real>& invW = *pInvW;
-     for (int32 i = 0; i < dim; ++ i)
-    {
-      // get w12
-      for(int32 j = 0; j < dim; ++ j)
-      {
-        int32 j2 = j;
-        if (j == i)
-          continue;
-        else if (j > i)
-          --j2;
-        w12(j2) = W(i, j);
-      }
-      // calucluate the diagonal elements
-      invW(i, i) = 1.0 / (W(i, i) - VecVec(w12, Beta.Row(i)));
-      beta.SetZero();
-      beta.AddVec(-invW(i, i), Beta.Row(i));
-      for(int32 j = 0; j < dim; ++ j)
-      {
-        int32 j2 = j;
-        if (j == i)
-          continue;
-        else if (j > i)
-          --j2;
-        invW(i, j) = beta(j2);
-      }
-    }
+     invW.CopyFromSp(W);
+     invW.Invert();
+//     for (int32 i = 0; i < dim; ++ i)
+//    {
+//      // get w12
+//      for(int32 j = 0; j < dim; ++ j)
+//      {
+//        int32 j2 = j;
+//        if (j == i)
+//          continue;
+//        else if (j > i)
+//          --j2;
+//        w12(j2) = W(i, j);
+//      }
+//      // calucluate the diagonal elements
+//      invW(i, i) = 1.0 / (W(i, i) - VecVec(w12, Beta.Row(i)));
+//      beta.SetZero();
+//      beta.AddVec(-invW(i, i), Beta.Row(i));
+//      for(int32 j = 0; j < dim; ++ j)
+//      {
+//        int32 j2 = j;
+//        if (j == i)
+//          continue;
+//        else if (j > i)
+//          --j2;
+//        invW(i, j) = beta(j2);
+//      }
+//    }
   }
 }
 

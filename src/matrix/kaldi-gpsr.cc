@@ -468,7 +468,7 @@ double GpsrBB(const GpsrConfig &opts, const SpMatrix<double> &H,
   }
 
   if (num_zeros != 0) {
-    KALDI_LOG << "GPSR for " << debug_str << ": number of 0's = " << num_zeros
+	  KALDI_VLOG(3) << "GPSR for " << debug_str << ": number of 0's = " << num_zeros
               << " out of " << dim << " dimensions.";
   }
 

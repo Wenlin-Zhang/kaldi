@@ -37,15 +37,7 @@ BaseFloat DecodableAmMfa2::LogLikelihoodZeroBased(int32 frame, int32 pdf_id) {
         << "vs. model dim = " << acoustic_model_.FeatureDim();
   }
 
-  BaseFloat loglike = 0.0;
-  if (gselect_all_.empty())
-  {
-	  loglike = acoustic_model_.LogLikelihood(pdf_id, data, NULL, NULL);
-  }
-  else {
-    KALDI_ASSERT(frame < gselect_all_.size());
-    loglike = acoustic_model_.LogLikelihood(pdf_id, data, NULL, &(gselect_all_[frame]));
-  }
+  BaseFloat loglike = acoustic_model_.LogLikelihood(pdf_id, data, NULL, NULL);
 
   if (KALDI_ISNAN(loglike) || KALDI_ISINF(loglike))
     KALDI_ERR << "Invalid answer (overflow or invalid variances/features?)";

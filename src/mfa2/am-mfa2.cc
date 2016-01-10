@@ -128,7 +128,7 @@ void AmMfa2::Write(std::ostream &out_stream, bool binary) const
 		  if (!binary) out_stream << "\n";
 	  }
 
-	  WriteToken(out_stream, binary, "COMP_INV_COVS");
+	  WriteToken(out_stream, binary, "<COMP_INV_COVS>");
 	  for(int j = 0; j < num_comp; ++ j)
 	  {
 		  sFaInvSigma_[i][j].Write(out_stream, binary);
@@ -223,11 +223,11 @@ void AmMfa2::PreCompute()
     int M = faIndex.size();
     Matrix<BaseFloat>& matMean = means_[j];
     Matrix<BaseFloat>& invSigma_mu_ji = invSigma_mu_ji_[j];
-    Vector<BaseFloat>& gconst_ji = gconst_ji_[j];
+    Vector<BaseFloat>& gconst_j = gconst_ji_[j];
     matMean.Resize(M, D);
     invSigma_mu_ji.Resize(M, D);
-    gconst_ji.Resize(M);
-    gconst_ji.Set(- D * M_LOG_2PI / 2);
+    gconst_j.Resize(M);
+    gconst_j.Set(- D * M_LOG_2PI / 2);
     for (int m = 0; m < M; ++ m)
     {
       int i = faIndex[m];
@@ -235,7 +235,7 @@ void AmMfa2::PreCompute()
       matMean.Row(m).CopyFromVec(mu_ji);
       mu_ji.AddVec(1.0, mfa_.GetLocalCenter(i));
       invSigma_mu_ji.Row(m).AddSpVec(1.0, sFaInvSigma_[j][m], mu_ji, 0.0);
-      gconst_ji(m) =  sFaInvSigma_[j][m].LogDet() / 2 + log(sFaWeight_[j](m)) - 0.5 * VecVec(mu_ji, invSigma_mu_ji.Row(m));
+      gconst_j(m) +=  (sFaInvSigma_[j][m].LogDet() / 2 + log(sFaWeight_[j](m)) - 0.5 * VecVec(mu_ji, invSigma_mu_ji.Row(m)));
     }
   }
 

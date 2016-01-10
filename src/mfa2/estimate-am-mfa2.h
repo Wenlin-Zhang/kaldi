@@ -33,7 +33,7 @@ namespace kaldi {
  */
 struct MleAmMfa2Options {
   MleAmMfa2Options(): max_comp_(-1.0), min_comp_(10), use_l1_(false),
-      gpsr_tau_(10.0), glasso_tau_(2.0), s0_thresh_(5.0), weight_method_(2), weight_parm_(0.1)
+      gpsr_tau_(10.0), glasso_tau_(2.0), s0_thresh_(5.0), min_cov_ratio_(2.0),  weight_method_(2), weight_parm_(0.1)
   {  }
 
   void Register(OptionsItf *po) {
@@ -44,6 +44,7 @@ struct MleAmMfa2Options {
     po->Register("tau", &gpsr_tau_, module + "L1 weight for phone vector estimation.");
     po->Register("glasso-tau", &glasso_tau_, module + "L1 weight for sparse inverse covariance estimation with graphical lasso.");
     po->Register("s0-thresh", &s0_thresh_, module + "the minimal count to estimate the local dimension.");
+    po->Register("min-cov-ratio", &min_cov_ratio_, module + "the minimal count to estimate the local covariance matrix.");
     po->Register("weight-method", &weight_method_, module + "method for weight estimation.");
     po->Register("weight-parm", &weight_parm_, module + "parameter for weight estimation.");
   }
@@ -54,6 +55,7 @@ struct MleAmMfa2Options {
   BaseFloat gpsr_tau_;  // phone vector estimation L1 weight
   BaseFloat glasso_tau_; // L1 weight for sparse inverse covariance estimation with graphical lasso
   BaseFloat s0_thresh_; // the minimal component occupation for state specific parameter update
+  BaseFloat min_cov_ratio_; // if the component occupation < min_cov_ratio * dim, use global covariance matrix
   int32 weight_method_;    // weight estimation method, 1,2,3 or 4
   BaseFloat weight_parm_;  // parameter for weight estimation
 };
