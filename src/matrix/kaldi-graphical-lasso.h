@@ -167,7 +167,7 @@ void GraphicalLasso(const SpMatrix<Real>& S, SpMatrix<Real>* pW, SpMatrix<Real>*
       }
       // Init beta
       InvW11 = W11;
-      InvW11.Inverse();
+      InvW11.Invert();
       beta.AddSpVec(1.0, InvW11, w12, 0.0);
 
       // solve the l1 problem
